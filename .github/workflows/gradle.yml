@@ -18,29 +18,26 @@ jobs:
       with:
         java-version: '8'
         distribution: 'temurin'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
         
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       
-    - name: Clear Gradle Cache
-      run: |
-        rm -rf ~/.gradle/caches/
-        rm -rf ~/.gradle/wrapper/
-        
-    - name: Setup Gradle with retry
-      uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 2.7
-        
     - name: Setup Decompiled Workspace
       run: ./gradlew setupDecompWorkspace --refresh-dependencies --no-daemon --stacktrace -x getAssets -x getAssetsIndex
       continue-on-error: false
       
-    - name: Build with Gradle (with retries)
-      run: |
-        for i in 1 2 3; do
-          ./gradlew build --refresh-dependencies --no-daemon --stacktrace -x getAssets -x getAssetsIndex -x runClient -x runServer && break || sleep 30
-        done
+    - name: Build with Gradle
+      run: ./gradlew build --refresh-dependencies --no-daemon --stacktrace -x getAssets -x getAssetsIndex -x runClient -x runServer
       
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
