@@ -1,4 +1,4 @@
-package com.example.textdisplay;
+package com.yuki920.textdisplay;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -14,9 +14,9 @@ public class PlayerTextDisplay {
         EntityPlayer player = event.entityPlayer;
         
         // 自分自身には表示しない（オプション）
-        if (player == Minecraft.getMinecraft().thePlayer) {
-            return;
-        }
+        // if (player == Minecraft.getMinecraft().thePlayer) {
+        //    return;
+        // }
         
         // 表示するテキスト
         String text = "Hello World!";
