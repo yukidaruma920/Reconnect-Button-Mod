@@ -1,0 +1,14 @@
+[
+  {
+    "modid": "textdisplay",
+    "name": "Text Display Mod",
+    "description": "Displays text above player heads",
+    "version": "1.0.0",
+    "mcversion": "1.8.9",
+    "authorList": ["yuki920"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
