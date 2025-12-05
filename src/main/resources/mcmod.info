@@ -1,8 +1,8 @@
 [
   {
     "modid": "textdisplay",
-    "name": "Text Display Mod",
-    "description": "Displays text above player heads",
+    "name": "Reconnect Button Mod",
+    "description": "This Mod adds a Reconnect Button to the Disconnect Screen.",
     "version": "1.0.0",
     "mcversion": "1.8.9",
     "authorList": ["yuki920"],
