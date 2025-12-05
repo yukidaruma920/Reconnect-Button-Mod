@@ -1,91 +1,82 @@
-package com.yuki920.reconnectbuttonmod;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiDisconnected;
-import net.minecraft.client.gui.GuiMainMenu;
-import net.minecraft.client.gui.GuiMultiplayer;
-import net.minecraft.client.multiplayer.ServerData;
-import net.minecraftforge.client.event.GuiScreenEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.client.FMLClientHandler;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.network.FMLNetworkEvent;
-
-@Mod(modid = ReconnectButtonMod.MODID, version = ReconnectButtonMod.VERSION)
-public class ReconnectButtonMod {
-    public static final String MODID = "ReconnectButtonMod";
-    public static final String VERSION = "1.0";
-
-    // 直前に接続していたサーバー情報を保持する変数
-    public static ServerData lastServerData;
-    
-    // 追加するボタンのID（既存のボタンと被らないように適当な数字にする）
-    private static final int RECONNECT_BUTTON_ID = 9999;
-
-    @Mod.EventHandler
-    public void init(FMLInitializationEvent event) {
-        // イベントバスにこのクラスを登録
-        MinecraftForge.EVENT_BUS.register(this);
-    }
-
-    /**
-     * サーバーに接続成功した際、そのサーバー情報を保存する
-     */
-    @SubscribeEvent
-    public void onClientConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
-        // ローカルサーバーでなければサーバーデータを保存
-        if (!event.isLocal) {
-            ServerData data = Minecraft.getMinecraft().getCurrentServerData();
-            if (data != null) {
-                lastServerData = data;
-            }
+// For those who want the bleeding edge
+buildscript {
+    repositories {
+        jcenter()
+        maven {
+            name = "forge"
+            url = "http://files.minecraftforge.net/maven"
         }
     }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+    }
+}
+apply plugin: 'net.minecraftforge.gradle.forge'
 
-    /**
-     * GUIが表示される(初期化される)時に呼ばれるイベント
-     * ここでボタンを追加する
-     */
-    @SubscribeEvent
-    public void onGuiInit(GuiScreenEvent.InitGuiEvent.Post event) {
-        // 現在の画面が「切断画面(GuiDisconnected)」の場合のみ処理
-        if (event.gui instanceof GuiDisconnected) {
-            int width = event.gui.width;
-            int height = event.gui.height;
-            
-            // ボタンの配置位置計算 (既存の"Back to server list"の下に配置)
-            // height / 2 + 100 くらいがリストへ戻るボタンの位置なので、その下(+25)あたり
-            int buttonX = width / 2 - 100; // ボタンの幅が200なので、中心から-100
-            int buttonY = height / 2 + 100 + 25; 
+/*
+// for people who want stable - not yet functional for MC 1.8.8 - we require the forgegradle 2.1 snapshot
+plugins {
+    id "net.minecraftforge.gradle.forge" version "2.0.2"
+}
+*/
+version = "1.0"
+group= "com.yuki920.reconnectbuttonmod" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "ReconnectButtonMod"
 
-            // ボタンリストに追加
-            // 引数: ID, x, y, 幅, 高さ, テキスト
-            event.buttonList.add(new GuiButton(RECONNECT_BUTTON_ID, buttonX, buttonY, 200, 20, "Reconnect"));
-        }
+minecraft {
+    version = "1.8.9-11.15.1.2318-1.8.9"
+    runDir = "run"
+
+    // the mappings can be changed at any time, and must be in the following format.
+    // snapshot_YYYYMMDD   snapshot are built nightly.
+    // stable_#            stables are built at the discretion of the MCP team.
+    // Use non-default mappings at your own risk. they may not allways work.
+    // simply re-run your setup task after changing the mappings to update your workspace.
+    mappings = "stable_20"
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+}
+
+dependencies {
+    // you may put jars on which you depend on in ./libs
+    // or you may define them like so..
+    //compile "some.group:artifact:version:classifier"
+    //compile "some.group:artifact:version"
+
+    // real examples
+    //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
+    //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
+
+    // the 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
+    //provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // the deobf configurations:  'deobfCompile' and 'deobfProvided' are the same as the normal compile and provided,
+    // except that these dependencies get remapped to your current MCP mappings
+    //deobfCompile 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+    //deobfProvided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // for more info...
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+}
+
+processResources
+{
+    // this will ensure that this task is redone when the versions change.
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    // replace stuff in mcmod.info, nothing else
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+
+        // replace version and mcversion
+        expand 'version':project.version, 'mcversion':project.minecraft.version
     }
 
-    /**
-     * ボタンがクリックされた時に呼ばれるイベント
-     */
-    @SubscribeEvent
-    public void onGuiAction(GuiScreenEvent.ActionPerformedEvent.Pre event) {
-        // 切断画面かつ、押されたボタンが「Reconnect」ボタンの場合
-        if (event.gui instanceof GuiDisconnected && event.button.id == RECONNECT_BUTTON_ID) {
-            if (lastServerData != null) {
-                // 再接続処理
-                connectToServer(lastServerData);
-            }
-        }
-    }
-
-    /**
-     * サーバーへの接続処理を行うヘルパーメソッド
-     */
-    private void connectToServer(ServerData server) {
-        // 接続処理はFMLClientHandlerを使うのが安全
-        FMLClientHandler.instance().connectToServer(new GuiMultiplayer(new GuiMainMenu()), server);
+    // copy everything else, thats not the mcmod.info
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
     }
 }
