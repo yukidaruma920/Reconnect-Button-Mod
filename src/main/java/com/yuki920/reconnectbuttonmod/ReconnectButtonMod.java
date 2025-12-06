@@ -6,44 +6,61 @@ import net.minecraft.client.gui.GuiDisconnected;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiMultiplayer;
 import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.gui.GuiScreenAddServer;
+import net.minecraft.client.multiplayer.GuiConnecting;
 import net.minecraftforge.client.event.GuiScreenEvent;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
+import java.lang.reflect.Field;
 
 @Mod(modid = ReconnectButtonMod.MODID, version = ReconnectButtonMod.VERSION)
 public class ReconnectButtonMod {
     public static final String MODID = "ReconnectButtonMod";
     public static final String VERSION = "1.0";
 
-    // 直前に接続していたサーバー情報を保持する変数
-    public static ServerData lastServerData;
+    // Store the last server data
+    private ServerData lastServerData;
     
-    // 追加するボタンのID（既存のボタンと被らないように適当な数字にする）
+    // A unique ID for the reconnect button
     private static final int RECONNECT_BUTTON_ID = 9999;
+
+    private Field serverDataField;
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
-        // イベントバスにこのクラスを登録
         MinecraftForge.EVENT_BUS.register(this);
+        try {
+            serverDataField = GuiScreenAddServer.class.getDeclaredField("field_146311_h");
+            serverDataField.setAccessible(true);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
-     * サーバーに接続成功した際、そのサーバー情報を保存する
+     * Capture the server data when the connection GUI is opened.
      */
     @SubscribeEvent
-    public void onClientConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
-        // ローカルサーバーでなければサーバーデータを保存
-        if (!event.isLocal) {
+    public void onGuiOpen(GuiOpenEvent event) {
+        if (event.gui instanceof GuiConnecting) {
             ServerData data = Minecraft.getMinecraft().getCurrentServerData();
             if (data != null) {
-                lastServerData = data;
+                this.lastServerData = data;
+            }
+        } else if (event.gui instanceof GuiScreenAddServer) {
+            try {
+                this.lastServerData = (ServerData) serverDataField.get(event.gui);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
             }
         }
     }
+
 
     /**
      * GUIが表示される(初期化される)時に呼ばれるイベント
@@ -51,32 +68,34 @@ public class ReconnectButtonMod {
      */
     @SubscribeEvent
     public void onGuiInit(GuiScreenEvent.InitGuiEvent.Post event) {
-        // 現在の画面が「切断画面(GuiDisconnected)」の場合のみ処理
         if (event.gui instanceof GuiDisconnected) {
-            int width = event.gui.width;
-            int height = event.gui.height;
+            GuiButton backButton = null;
+            // "Back to server list" button has an ID of 0 on the disconnect screen
+            for (GuiButton button : event.buttonList) {
+                if (button.id == 0) {
+                    backButton = button;
+                    break;
+                }
+            }
 
-            // ボタンの配置位置計算 (既存の"Back to server list"の下に配置)
-            // height / 2 + 100 くらいがリストへ戻るボタンの位置なので、その下(+25)あたり
-            int buttonX = width / 2 - 100; // ボタンの幅が200なので、中心から-100
-            int buttonY = height / 2 + 100 + 25;
+            if (backButton != null) {
+                // Position the "Reconnect" button 4 pixels below the "Back to server list" button
+                int buttonX = backButton.xPosition;
+                int buttonY = backButton.yPosition + backButton.height + 4;
 
-            // ボタンリストに追加
-            // 引数: ID, x, y, 幅, 高さ, テキスト
-            event.buttonList.add(new GuiButton(RECONNECT_BUTTON_ID, buttonX, buttonY, 200, 20, "Reconnect"));
+                event.buttonList.add(new GuiButton(RECONNECT_BUTTON_ID, buttonX, buttonY, backButton.width, 20, "Reconnect"));
+            }
         }
     }
 
     /**
-     * ボタンがクリックされた時に呼ばれるイベント
+     * Handle button clicks on the disconnect screen.
      */
     @SubscribeEvent
-    public void onGuiAction(GuiScreenEvent.ActionPerformedEvent.Pre event) {
-        // 切断画面かつ、押されたボタンが「Reconnect」ボタンの場合
+    public void onGuiAction(GuiScreenEvent.ActionPerformedEvent.Post event) {
         if (event.gui instanceof GuiDisconnected && event.button.id == RECONNECT_BUTTON_ID) {
-            if (lastServerData != null) {
-                // 再接続処理
-                connectToServer(lastServerData);
+            if (this.lastServerData != null) {
+                connectToServer(this.lastServerData);
             }
         }
     }
