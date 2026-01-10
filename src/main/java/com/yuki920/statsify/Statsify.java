@@ -572,7 +572,7 @@ public class Statsify {
             
             // Hypixel APIを使用
             String jsonResponse = fetchHypixelBedwarsStats(uuid);
-            return parseHypixelStats(jsonResponse, playerName);
+            return parseHypixelStats(jsonResponse, playerName, uuid);
 
             // String stjson = nadeshikoAPI(uuid);
             // if (stjson == null || stjson.isEmpty()) {
@@ -690,7 +690,7 @@ public class Statsify {
         return response.toString();
         }
 
-        private String parseHypixelStats(String jsonResponse, String playerName) {
+        private String parseHypixelStats(String jsonResponse, String playerName, String uuid) {
         try {
             JsonObject root = new JsonParser().parse(jsonResponse).getAsJsonObject();
             
