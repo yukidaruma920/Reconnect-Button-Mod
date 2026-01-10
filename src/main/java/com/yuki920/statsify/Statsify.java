@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.authlib.GameProfile;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiPlayerTabOverlay;
 import net.minecraft.client.network.NetworkPlayerInfo;
@@ -13,18 +12,21 @@ import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IChatComponent;
+import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.scoreboard.ScorePlayerTeam;
+import net.minecraft.util.IChatComponent;
 import net.minecraftforge.client.ClientCommandHandler;
-import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-
+import scala.reflect.internal.Trees;
+import net.minecraft.scoreboard.ScorePlayerTeam;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -56,12 +58,12 @@ public class Statsify {
     private Boolean reqUUID = false;
     private Boolean autowho = true;
     private String tabFormat = "bracket_star_name_dot_fkdr";
-    private static final Map<String, List<String>> playerSuffixes = new HashMap<>();
+    private static final Map<String, List<String>> playerSuffixes = new HashMap<String, List<String>>();
     private final Minecraft mc = Minecraft.getMinecraft();
     private int minFkdr = DEFAULT_MIN_FKDR;
     private String urchinkey = "";
     private String mode = DEFAULT_MODE;
-    private List<String> onlinePlayers = new ArrayList<>();
+    private List<String> onlinePlayers = new ArrayList<String>();
     private String hypixelApiKey = "";
 
     @Mod.EventHandler
@@ -85,47 +87,45 @@ public class Statsify {
 
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
-        catchAndIgnoreNullPointerException(() -> {
-            String message = event.message.getUnformattedText();
-            if(autowho) {
-                if (message.contains("Protect your bed and destroy the enemy beds.") && !(message.contains(":")) && !(message.contains("SHOUT"))) {
-                    mc.thePlayer.sendChatMessage("/who");
-                }
-            }
-            if (message.startsWith("ONLINE:")) {
-                String playersString = message.substring("ONLINE:".length()).trim();
-                String[] players = playersString.split(",\\s*");
-                onlinePlayers = new ArrayList<>(Arrays.asList(players));
-                if (Objects.equals(mode, "bws")) {
-
-                    checkStatsRatelimitless();
-                } else {
-
-                    Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7cPlancke is discontinued, use BWS."));
-
-                }
-                if (urchin) {
-                    checkUrchinTags();
-                }
-            }
-
-            if (message.startsWith(" ") && message.contains("Opponent:")) {
-                String username = parseUsername(message);
-                new Thread(() -> {
-                    try {
-                        String stats = checkDuels(username);
-                        Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] " + stats));
-                    } catch (IOException e) {
-                        Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7c" + username + " is possibly nicked.\u00a7r"));
-
+        catchAndIgnoreNullPointerException(new Runnable() {
+            @Override
+            public void run() {
+                String message = event.message.getUnformattedText();
+                if(autowho) {
+                    if (message.contains("Protect your bed and destroy the enemy beds.") && !(message.contains(":")) && !(message.contains("SHOUT"))) {
+                        mc.thePlayer.sendChatMessage("/who");
                     }
-                }).start();
+                }
+                if (message.startsWith("ONLINE:")) {
+                    String playersString = message.substring("ONLINE:".length()).trim();
+                    String[] players = playersString.split(",\\s*");
+                    onlinePlayers = new ArrayList<String>(Arrays.asList(players));
+                    if (Objects.equals(mode, "bws")) {
+                        checkStatsRatelimitless();
+                    } else {
+                        Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7cPlancke is discontinued, use BWS."));
+                    }
+                    if (urchin) {
+                        checkUrchinTags();
+                    }
+                }
 
-
+                if (message.startsWith(" ") && message.contains("Opponent:")) {
+                    final String username = parseUsername(message);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                String stats = checkDuels(username);
+                                Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] " + stats));
+                            } catch (IOException e) {
+                                Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7c" + username + " is possibly nicked.\u00a7r"));
+                            }
+                        }
+                    }).start();
+                }
             }
         });
-
-
     }
 
 
@@ -294,79 +294,124 @@ public class Statsify {
     }
 
     private void checkUrchinTags() {
-        catchAndIgnoreNullPointerException(() -> {
-            ExecutorService executor = Executors.newFixedThreadPool(5);
+        catchAndIgnoreNullPointerException(new Runnable() {
+            @Override
+            public void run() {
+                ExecutorService executor = Executors.newFixedThreadPool(5);
 
-            for (String playerName : onlinePlayers) {
+                for (final String playerName : onlinePlayers) {
+                    executor.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                String uuid = fetchUUID(playerName);
+                                String tags = fetchUrchinTags(playerName).replace("sniper", "\u00a74\u00a7lSniper").replace("blatant_cheater", "\u00a74\u00a7lBlatant Cheater").replace("closet_cheater", "\u00a7e\u00a7lCloset Cheater").replace("confirmed_cheater", "\u00a74\u00a7lConfirmed Cheater");
 
-                executor.submit(() -> {
-                    try {
-                        String uuid = fetchUUID(playerName);
-                        String tags = fetchUrchinTags(playerName).replace("sniper", "\u00a74\u00a7lSniper").replace("blatant_cheater", "\u00a74\u00a7lBlatant Cheater").replace("closet_cheater", "\u00a7e\u00a7lCloset Cheater").replace("confirmed_cheater", "\u00a74\u00a7lConfirmed Cheater");
+                                if (!tags.isEmpty()) {
+                                    mc.addScheduledTask(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            mc.thePlayer.addChatMessage(
+                                                new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7c\u26a0 \u00a7r" + getTabDisplayName(playerName) + " \u00a7ris \u00a7ctagged\u00a7r for: " + tags)
+                                            );
+                                        }
+                                    });
+                                }
 
-                        if (!tags.isEmpty()) {
-                            mc.addScheduledTask(() -> mc.thePlayer.addChatMessage(
-                                    new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7c\u26a0 \u00a7r" + getTabDisplayName(playerName) + " \u00a7ris \u00a7ctagged\u00a7r for: " + tags)
-                            ));
+                            } catch (final IOException e) {
+                                mc.addScheduledTask(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mc.thePlayer.addChatMessage(
+                                            new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] Failed to fetch tags for: " + playerName + " | " + e.getMessage())
+                                        );
+                                    }
+                                });
+                            }
                         }
-
-                    } catch (IOException e) {
-                        mc.addScheduledTask(() -> mc.thePlayer.addChatMessage(
-                                new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] Failed to fetch tags for: "
-                                        + playerName + " | " + e.getMessage())
-                        ));
-                    }
-                });
+                    });
+                }
+                executor.shutdown();
             }
-            executor.shutdown();
-
         });
     }
 
     private void checkStatsRatelimitless() {
-        catchAndIgnoreNullPointerException(() -> {
-            // Made by The_Bi11iona1re
-            final int MAX_THREADS = 20;
-            int poolSize = Math.min(onlinePlayers.size(), MAX_THREADS);
-            ExecutorService executor = Executors.newFixedThreadPool(poolSize);
+        catchAndIgnoreNullPointerException(new Runnable() {
+            @Override
+            public void run() {
+                final int MAX_THREADS = 20;
+                int poolSize = Math.min(onlinePlayers.size(), MAX_THREADS);
+                final ExecutorService executor = Executors.newFixedThreadPool(poolSize);
 
-            for (String playerName : onlinePlayers) {
-                executor.submit(() -> {
-                    try {
-                        String stats = fetchBedwarsStats(playerName);
-                        if (!stats.isEmpty()) {
-                            mc.addScheduledTask(() -> mc.thePlayer.addChatMessage(
-                                    new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] " + stats)
-                            ));
+                for (final String playerName : onlinePlayers) {
+                    executor.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                final String stats = fetchBedwarsStats(playerName);
+                                if (!stats.isEmpty()) {
+                                    mc.addScheduledTask(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            mc.thePlayer.addChatMessage(
+                                                new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] " + stats)
+                                            );
+                                        }
+                                    });
+                                }
+                            } catch (IOException e) {
+                                mc.addScheduledTask(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mc.thePlayer.addChatMessage(
+                                            new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] Failed to fetch stats for: " + playerName + " | [UpstreamCSR] ")
+                                        );
+                                    }
+                                });
+                            }
                         }
-                    } catch (IOException e) {
-                        mc.addScheduledTask(() -> mc.thePlayer.addChatMessage(
-                                new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] Failed to fetch stats for: "
-                                        + playerName + " | [UpstreamCSR] " )
-                        ));
-                    }
-                });
-            }
-
-            executor.shutdown();
-
-            new Thread(() -> {
-                try {
-                    if (executor.awaitTermination(60, TimeUnit.SECONDS)) {
-                        mc.addScheduledTask(() -> mc.thePlayer.addChatMessage(
-                                new ChatComponentText("\u00a7r[\u00a7bF\u00a7r]\u00a7a Checks completed.")
-                        ));
-                    } else {
-                        mc.addScheduledTask(() -> mc.thePlayer.addChatMessage(
-                                new ChatComponentText("\u00a7r[\u00a7bF\u00a7r]\u00a7c Timeout waiting for completion.")
-                        ));
-                    }
-                } catch (InterruptedException e) {
-                    mc.addScheduledTask(() -> mc.thePlayer.addChatMessage(
-                            new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7cError while waiting: " + e.getMessage())
-                    ));
+                    });
                 }
-            }).start();
+
+                executor.shutdown();
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            if (executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                                mc.addScheduledTask(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mc.thePlayer.addChatMessage(
+                                            new ChatComponentText("\u00a7r[\u00a7bF\u00a7r]\u00a7a Checks completed.")
+                                        );
+                                    }
+                                });
+                            } else {
+                                mc.addScheduledTask(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mc.thePlayer.addChatMessage(
+                                            new ChatComponentText("\u00a7r[\u00a7bF\u00a7r]\u00a7c Timeout waiting for completion.")
+                                        );
+                                    }
+                                });
+                            }
+                        } catch (final InterruptedException e) {
+                            mc.addScheduledTask(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mc.thePlayer.addChatMessage(
+                                        new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7cError while waiting: " + e.getMessage())
+                                    );
+                                }
+                            });
+                        }
+                    }
+                }).start();
+            }
         });
     }
 
@@ -793,8 +838,14 @@ public class Statsify {
         // Suspicious name
         String totaltags = "";
         String[] suswords = {"msmc", "kikin", "g0ld", "Fxrina_", "MAL_", "fer_","ly_","tzi_","Verse_","uwunova","Anas_","MyloAlt_","rayl_","mchk_","HellAlts_","disruptive","solaralts_","G0LDALTS_","unwilling","predicative"};
-        boolean suswordcheck = Arrays.stream(suswords)
-                .anyMatch(keyword -> name.toLowerCase().contains(keyword.toLowerCase()));
+        boolean suswordcheck = false;
+        for (String keyword : suswords) {
+            if (name.toLowerCase().contains(keyword.toLowerCase())) {
+                suswordcheck = true;
+                break;
+            }
+        }
+
         if(suswordcheck || Pattern.compile("\\d.*\\d.*\\d.*\\d").matcher(name).find()) totaltags = totaltags + EnumChatFormatting.YELLOW + "N \u00a7r";
         // Suspicious name end
 
@@ -834,8 +885,14 @@ public class Statsify {
                     String value = parts[1].split("\"")[0];
                     byte[] decodedBytes = Base64.getDecoder().decode(value);
                     String valueJson = new String(decodedBytes);
-                    boolean skincheck = Arrays.stream(defaultSkinIDS)
-                            .anyMatch(id -> valueJson.toLowerCase().contains(id.toLowerCase()));
+                    boolean skincheck = false;
+                    for (String id : defaultSkinIDS) {
+                        if (valueJson.toLowerCase().contains(id.toLowerCase())) {
+                            skincheck = true;
+                            break;
+                        }
+                    }
+
                     if(skincheck) totaltags = totaltags + EnumChatFormatting.DARK_AQUA + "SK \u00a7r";
                 }
             }   catch (Exception e) { e.printStackTrace();}
@@ -1180,7 +1237,7 @@ Prename check end
 
         Pattern kdPattern = Pattern.compile("<td style=\"border-right: 1px solid #f3f3f3\">(-|\\d+(\\.\\d+)?)</td>");
         Matcher kdMatcher = kdPattern.matcher(response);
-        List<String> kdList = new ArrayList<>();
+        List<String> kdList = new ArrayList<String>();
         while (kdMatcher.find()) {
             kdList.add(kdMatcher.group(1));
         }
@@ -1252,11 +1309,13 @@ Prename check end
     private void loadConfig() {
         File configFile = new File(CONFIG_PATH);
         if (!configFile.exists()) {
-            saveConfig(DEFAULT_MIN_FKDR, DEFAULT_MODE, false,true,false,"",true,true, "bracket_star_name_dot_fkdr", hypixelApiKey);
+            saveConfig(DEFAULT_MIN_FKDR, DEFAULT_MODE, false,true,false,"",true,true, "bracket_star_name_dot_fkdr", "");
             return;
         }
 
-        try (Reader reader = new FileReader(configFile)) {
+        Reader reader = null;
+        try {
+            reader = new FileReader(configFile);
             JsonObject json = new Gson().fromJson(reader, JsonObject.class);
             minFkdr = json.has("minFkdr") ? json.get("minFkdr").getAsInt() : DEFAULT_MIN_FKDR;
             mode = json.has("mode") ? json.get("mode").getAsString() : DEFAULT_MODE;
@@ -1280,6 +1339,14 @@ Prename check end
             autowho = true;
             tabFormat = "bracket_star_name_dot_fkdr";
             hypixelApiKey = "";
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -1287,7 +1354,9 @@ Prename check end
         File configFile = new File(CONFIG_PATH);
         configFile.getParentFile().mkdirs();
 
-        try (Writer writer = new FileWriter(configFile)) {
+        Writer writer = null;
+        try {
+            writer = new FileWriter(configFile);
             JsonObject json = new JsonObject();
             json.addProperty("minFkdr", minFkdrValue);
             json.addProperty("mode", modeValue);
@@ -1302,7 +1371,16 @@ Prename check end
             new Gson().toJson(json, writer);
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
+
     }
 
     public class MinFkdrCommand extends CommandBase {
@@ -1458,29 +1536,41 @@ Prename check end
             }
 
             String username = args[0];
-            new Thread(() -> {
-                try {
-                    String stats = fetchPlayerStatss(username);
-                    Minecraft.getMinecraft().addScheduledTask(() ->
-                            Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] " + stats))
-                    );
-                } catch (IOException e) {
-                    Minecraft.getMinecraft().addScheduledTask(() ->
-                            Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7cFailed to fetch stats for: \u00a7r" + username))
-                    );
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        final String stats = fetchPlayerStatss(username);
+                        Minecraft.getMinecraft().addScheduledTask(new Runnable() {
+                            @Override
+                            public void run() {
+                                Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] " + stats));
+                            }
+                        });
+                    } catch (IOException e) {
+                        Minecraft.getMinecraft().addScheduledTask(new Runnable() {
+                            @Override
+                            public void run() {
+                                Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("\u00a7r[\u00a7bF\u00a7r] \u00a7cFailed to fetch stats for: \u00a7r" + username));
+                            }
+                        });
+                    }
                 }
             }).start();
+
         }
-    @Override
-    public List<String> addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
-        if (args.length == 1) {
-            return getListOfStringsMatchingLastWord(args, Minecraft.getMinecraft().getNetHandler().getPlayerInfoMap().stream()
-                    .map(NetworkPlayerInfo::getGameProfile)
-                    .map(GameProfile::getName)
-                    .toArray(String[]::new));
+        @Override
+        public List<String> addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
+            if (args.length == 1) {
+                Collection<NetworkPlayerInfo> playerInfoMap = Minecraft.getMinecraft().getNetHandler().getPlayerInfoMap();
+                List<String> playerNames = new ArrayList<String>();
+                for (NetworkPlayerInfo info : playerInfoMap) {
+                    playerNames.add(info.getGameProfile().getName());
+                }
+                return getListOfStringsMatchingLastWord(args, playerNames.toArray(new String[playerNames.size()]));
+            }
+            return null;
         }
-        return null;
-    }
         @Override
         public int getRequiredPermissionLevel() {
             return 0;
