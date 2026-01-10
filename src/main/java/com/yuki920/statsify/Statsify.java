@@ -728,11 +728,15 @@ public class Statsify {
             
             // FKDR色付け
             String fkdrColor = "§7";
-            if (fkdr >= 1 && fkdr < 3) fkdrColor = "§f";
-            if (fkdr >= 3 && fkdr < 8) fkdrColor = "§a";
-            if (fkdr >= 8 && fkdr < 16) fkdrColor = "§6";
-            if (fkdr >= 16 && fkdr < 25) fkdrColor = "§d";
-            if (fkdr > 25) fkdrColor = "§4";
+            if (fkdr >= 0.5 && fkdr < 1) fkdrColor = "§f";
+            if (fkdr >= 1 && fkdr < 2) fkdrColor = "§a";
+            if (fkdr >= 2 && fkdr < 3) fkdrColor = "§2";
+            if (fkdr >= 3 && fkdr < 4) fkdrColor = "§e";
+            if (fkdr >= 4 && fkdr < 6) fkdrColor = "§6";
+            if (fkdr >= 6 && fkdr < 8) fkdrColor = "§c";
+            if (fkdr >= 8 && fkdr < 10) fkdrColor = "§4";
+            if (fkdr >= 10 && fkdr < 15) fkdrColor = "§d";
+            if (fkdr > 15) fkdrColor = "§5";
             
             DecimalFormat df = new DecimalFormat("#.##");
             String formattedFkdr = df.format(fkdr);
