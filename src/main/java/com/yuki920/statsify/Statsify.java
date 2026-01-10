@@ -305,7 +305,7 @@ public class Statsify {
                         public void run() {
                             try {
                                 String uuid = fetchUUID(playerName);
-                                String tags = fetchUrchinTags(playerName).replace("sniper", "\u00a74\u00a7lSniper").replace("blatant_cheater", "\u00a74\u00a7lBlatant Cheater").replace("closet_cheater", "\u00a7e\u00a7lCloset Cheater").replace("confirmed_cheater", "\u00a74\u00a7lConfirmed Cheater");
+                                final String tags = fetchUrchinTags(playerName).replace("sniper", "\u00a74\u00a7lSniper").replace("blatant_cheater", "\u00a74\u00a7lBlatant Cheater").replace("closet_cheater", "\u00a7e\u00a7lCloset Cheater").replace("confirmed_cheater", "\u00a74\u00a7lConfirmed Cheater");
 
                                 if (!tags.isEmpty()) {
                                     mc.addScheduledTask(new Runnable() {
@@ -1535,7 +1535,7 @@ Prename check end
                 return;
             }
 
-            String username = args[0];
+            final String username = args[0];
             new Thread(new Runnable() {
                 @Override
                 public void run() {
