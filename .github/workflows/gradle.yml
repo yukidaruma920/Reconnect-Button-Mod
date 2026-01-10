@@ -36,11 +36,9 @@ jobs:
       run: ./gradlew setupDecompWorkspace --refresh-dependencies --no-daemon --stacktrace -x getAssets -x getAssetIndex
       continue-on-error: false
       
-    - name: Build with Gradle (with retries)
+    - name: Build with Gradle
       run: |
-        for i in 1 2 3; do
-          ./gradlew build --refresh-dependencies --no-daemon --stacktrace -x getAssets -x getAssetIndex -x runClient -x runServer && break || sleep 30
-        done
+        ./gradlew build --refresh-dependencies --no-daemon --stacktrace -x getAssets -x getAssetIndex -x runClient -x runServer 
       
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4

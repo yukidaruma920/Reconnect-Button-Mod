@@ -1,12 +1,14 @@
 [
   {
-    "modid": "textdisplay",
-    "name": "Reconnect Button Mod",
-    "description": "This Mod adds a Reconnect Button to the Disconnect Screen.",
-    "version": "1.0.0",
-    "mcversion": "1.8.9",
-    "authorList": ["yuki920"],
-    "credits": "",
+    "modid": "statsify",
+    "name": Bedwars Stats Mod",
+    "description": "bedwars stat mod.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["Strawberry, yuki920"],
+    "credits": "The Forge and FML guys, for making this example",
     "logoFile": "",
     "screenshots": [],
     "dependencies": []

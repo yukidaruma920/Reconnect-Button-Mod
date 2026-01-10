@@ -28,7 +28,7 @@ jobs:
         rm -rf ~/.gradle/wrapper/
         
     - name: Setup Gradle with retry
-      uses: gradle/gradle-build-action@v4
+      uses: gradle/gradle-build-action@v2
       with:
         gradle-version: 2.7
         
@@ -36,12 +36,10 @@ jobs:
       run: ./gradlew setupDecompWorkspace --refresh-dependencies --no-daemon --stacktrace
       continue-on-error: false
       
-    - name: Build with Gradle (with retries)
+    - name: Build with Gradle
       run: |
-        for i in 1 2 3; do
-          ./gradlew build --refresh-dependencies --no-daemon --stacktrace && break || sleep 30
-        done
-      
+        ./gradlew build --refresh-dependencies --no-daemon --stacktrace
+        
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       if: success()
