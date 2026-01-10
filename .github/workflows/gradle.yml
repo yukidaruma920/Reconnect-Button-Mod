@@ -38,7 +38,7 @@ jobs:
       
     - name: Build with Gradle
       run: |
-        /gradlew build --refresh-dependencies --no-daemon --stacktrace -x getAssets -x getAssetIndex -x runClient -x runServer 
+        ./gradlew build --refresh-dependencies --no-daemon --stacktrace -x getAssets -x getAssetIndex -x runClient -x runServer 
       
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
